@@ -1,31 +1,232 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33205.214
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Programming Project 3 Manage Variables and Constants", "Programming Project 3 Manage Variables and Constants.vcxproj", "{529C52AC-7A95-45B5-AEA6-7F609911BC3F}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Debug|x64.ActiveCfg = Debug|x64
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Debug|x64.Build.0 = Debug|x64
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Debug|x86.ActiveCfg = Debug|Win32
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Debug|x86.Build.0 = Debug|Win32
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Release|x64.ActiveCfg = Release|x64
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Release|x64.Build.0 = Release|x64
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Release|x86.ActiveCfg = Release|Win32
-		{529C52AC-7A95-45B5-AEA6-7F609911BC3F}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {2ABE53B6-F46D-494D-BE30-897C5F9D5932}
-	EndGlobalSection
-EndGlobal
+﻿/* 
+*	Programming Project: Managing Variables and Constants
+*	Author: Isaac Moreno 
+*	The purpose of this code is to accept variables and store the data. (For example If a Professor needs to assign a grade to a student: "Alex = 92"
+*   After, the data will be recalled if the user asks for it by simply typing the Variable name and
+*   will also display a list with all the variables and the number of variables if the word "list" is typed.
+*/
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <cctype>
+using namespace std;
+
+class Variable
+{
+private:
+    string name;
+    string value;
+    bool isConstant;
+
+public:
+    Variable(const string& name, const string& value, bool isConstant)
+        : name(name), value(value), isConstant(isConstant) {}
+
+    string getName() const
+    {
+        return name;
+    }
+
+    string getValue() const
+    {
+        return value;
+    }
+
+    void setValue(const string& newValue)
+    {
+        if (isConstant)
+        {
+            cout << "Invalid assignment. Cannot assign new value to a constant." << endl;
+        }
+        else
+        {
+            value = newValue;
+        }
+    }
+
+    bool getIsConstant() const
+    {
+        return isConstant;
+    }
+};
+
+class Constant : public Variable
+{
+public:
+    Constant(const string& name, const string& value)
+        : Variable(name, value, true) {}
+};
+
+class VariableListManager
+{
+private:
+    vector<Variable*> variables;
+
+public:
+    ~VariableListManager()
+    {
+        for (Variable* var : variables)
+        {
+            delete var;
+        }
+    }
+
+    void addVariable(Variable* variable)
+    {
+        variables.push_back(variable);
+    }
+
+    Variable* findVariable(const string& name)
+    {
+        for (Variable* var : variables)
+        {
+            if (var->getName() == name)
+            {
+                return var;
+            }
+        }
+        return nullptr;
+    }
+
+    void displayAllVariables() const
+    {
+        for (Variable* var : variables)
+        {
+            if (var->getIsConstant())
+            {
+                cout << "const ";
+            }
+            cout << var->getName() << "(" << var->getValue() << ")" << endl;
+        }
+        cout << "Number of variables/constants: " << variables.size() << endl << endl;
+    }
+};
+
+bool isValidVariableName(const string& name)
+{
+    if (name.empty() || isdigit(name[0]) || name == "const")
+    {
+        return false;
+    }
+
+    for (char c : name)
+    {
+        if (!isalnum(c) && c != '_')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void parseCommand(const string& command, VariableListManager& variableManager)
+{
+    istringstream confirm(command);
+    string total;
+    string variableName;
+    string variableValue;
+
+    if (confirm >> total)
+    {
+        if (total == "list")
+        {
+            variableManager.displayAllVariables();
+        }
+        else if (total == "exit")
+        {
+            cout << "Exiting..." << endl;
+            exit(0);
+        }
+        else if (total == "const")
+        {
+            if (confirm >> variableName && confirm >> total && total == "=" && confirm >> variableValue)
+            {
+                if (!isValidVariableName(variableName))
+                {
+                    cout << "Invalid variable name. Cannot start with a digit or be const." << endl << endl;
+                    return;
+                }
+
+                Variable* variable = variableManager.findVariable(variableName);
+
+                Variable* valueVariable = variableManager.findVariable(variableValue);
+                if (valueVariable != nullptr)
+                {
+                    variableValue = valueVariable->getValue();
+                }
+
+                if (variable == nullptr)
+                {
+                    variable = new Constant(variableName, variableValue);
+                    variableManager.addVariable(variable);
+                }
+                else
+                {
+                    cout << "Error: Variable " << variableName << " already exists." << endl << endl;
+                }
+            }
+            else
+            {
+                cout << "Invalid variable name. const is a reserved keyword" << endl << endl;
+            }
+        }
+        else
+        {
+            variableName = total;
+
+            if (confirm >> total && total == "=" && confirm >> variableValue)
+            {
+                if (!isValidVariableName(variableName))
+                {
+                    cout << "Invalid variable name. Cannot start with a digit or be a keyword." << endl << endl;
+                    return;
+                }
+
+                Variable* variable = variableManager.findVariable(variableName);
+
+                Variable* valueVariable = variableManager.findVariable(variableValue);
+                if (valueVariable != nullptr)
+                {
+                    variableValue = valueVariable->getValue();
+                }
+
+                if (variable == nullptr)
+                {
+                    variable = new Variable(variableName, variableValue, false);
+                    variableManager.addVariable(variable);
+                }
+                else
+                {
+                    variable->setValue(variableValue);
+                }
+
+                cout << variable->getName() << "(" << variable->getValue() << ")" << endl << endl;
+            }
+            else
+            {
+                Variable* variable = variableManager.findVariable(variableName);
+                if (variable != nullptr)
+                {
+                    cout << variable->getName() << "(" << variable->getValue() << ")" << endl << endl;
+                }
+                else
+                {
+                    cout << "Undefined" << endl << endl;
+                }
+            }
+        }
+    }
+}
+
+int main()
+{
+    VariableListManager variableManager;
+    cout << "Please enter variable assignment, variable name only, list, or exit: " << endl;
+    while (true)
+    {
+        string command;
+        getline(cin, command);
+        parseCommand(command, variableManager);
+    }
+    return 0;
+}
